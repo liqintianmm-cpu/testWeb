@@ -1,0 +1,543 @@
+/* 基础样式 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background: #f5f5f5;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* 标题样式 */
+header {
+    text-align: center;
+    margin-bottom: 30px;
+    color: #333;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+header p {
+    font-size: 1.2rem;
+    color: #666;
+}
+
+/* 主要区域样式 */
+main {
+    display: block;
+    margin-bottom: 30px;
+}
+
+/* 输入区域样式 */
+.input-section {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.input-section h2 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 8px;
+}
+
+/* 语音控制按钮 */
+.voice-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.voice-btn {
+    background: #4a5568;
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 200px;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.voice-btn:hover:not(:disabled) {
+    transform: scale(1.05);
+    background: #2d3748;
+}
+
+.voice-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.voice-btn.recording {
+    background: #e53e3e;
+    animation: pulse 1.5s infinite;
+    transform: scale(0.95);
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 语音状态显示 */
+.voice-status, .voice-result {
+    text-align: center;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.voice-status {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    color: #4a5568;
+}
+
+.voice-result {
+    background: #e6fffa;
+    border: 2px solid #38b2ac;
+    color: #234e52;
+}
+
+/* 手势输入区域 */
+.gesture-area {
+    width: 100%;
+    height: 300px;
+    border: 3px dashed #cbd5e0;
+    border-radius: 15px;
+    background: #f7fafc;
+    position: relative;
+    cursor: crosshair;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.gesture-area:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.gesture-area.active {
+    border-color: #38b2ac;
+    background: #e6fffa;
+}
+
+.gesture-instructions {
+    color: #718096;
+    font-size: 1.1rem;
+    text-align: center;
+    pointer-events: none;
+}
+
+.gesture-path {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* 测试段落按钮 */
+.test-paragraphs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.test-btn {
+    background: #f8f9fa;
+    color: #333;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.test-btn:hover {
+    background: #e9ecef;
+}
+
+.test-btn.active {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* 控制按钮 */
+.control-btn, .gesture-controls {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+    justify-content: center;
+}
+
+.control-btn {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.control-btn:hover {
+    background: #5a6268;
+}
+
+/* 文本输入区域 */
+#text-input {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    resize: vertical;
+    min-height: 120px;
+    transition: border-color 0.3s ease;
+}
+
+#text-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* 建议单词区域 */
+.suggestions-section {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.suggestions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.suggestion-item {
+    background: #f8f9fa;
+    color: #333;
+    padding: 8px 16px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.suggestion-item:hover {
+    background: #e9ecef;
+}
+
+.suggestion-item:active {
+    transform: translateY(0);
+}
+
+/* 输出区域 */
+.output-section {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.final-text {
+    background: #f7fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    min-height: 100px;
+    font-size: 1.2rem;
+    line-height: 1.8;
+    margin-bottom: 20px;
+    word-wrap: break-word;
+}
+
+.output-controls {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+
+/* 无障碍功能 */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    .input-section, .suggestions-section, .output-section, .keyboard-section {
+        border: 3px solid #000;
+    }
+    
+    .voice-btn, .control-btn, .suggestion-item {
+        border: 2px solid #000;
+    }
+}
+
+/* 减少动画模式 */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* 大字体模式 */
+@media (prefers-font-size: large) {
+    body {
+        font-size: 1.2rem;
+    }
+    
+    .voice-btn, .control-btn, .suggestion-item {
+        font-size: 1.2rem;
+        padding: 15px 25px;
+    }
+}
+
+/* 触摸捕获功能样式 */
+.touch-capture-controls {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 20px;
+    text-align: center;
+}
+
+.touch-capture-controls h3 {
+    color: #495057;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.touch-indicator {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10001;
+    animation: touchPulse 0.5s ease-out;
+}
+
+@keyframes touchPulse {
+    0% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+    50% { 
+        transform: scale(1.5); 
+        opacity: 0.7; 
+    }
+    100% { 
+        transform: scale(1); 
+        opacity: 1; 
+    }
+}
+
+.touch-log-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    max-height: 400px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    overflow-y: auto;
+    z-index: 10000;
+    border: 2px solid #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.touch-stats-panel {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    z-index: 10000;
+    border: 2px solid #333;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    min-width: 200px;
+}
+
+.touch-log-entry {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    border-left: 3px solid #ffaa00;
+}
+
+.touch-log-entry .event-type {
+    font-weight: bold;
+    color: #ffaa00;
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.touch-log-entry .event-details {
+    color: #fff;
+    margin: 4px 0;
+    font-size: 11px;
+}
+
+.touch-log-entry .event-time {
+    font-size: 10px;
+    color: #aaa;
+}
+
+.touch-stats-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #fff;
+    border-bottom: 1px solid #333;
+    padding-bottom: 5px;
+}
+
+.touch-stats-item {
+    margin: 5px 0;
+    color: #ddd;
+}
+
+.touch-stats-last-update {
+    margin-top: 10px;
+    font-size: 11px;
+    color: #aaa;
+    border-top: 1px solid #333;
+    padding-top: 5px;
+}
+
+/* 触摸捕获按钮样式 */
+.touch-capture-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 5px;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.touch-capture-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+.touch-capture-btn.stop {
+    background: #dc3545;
+}
+
+.touch-capture-btn.stop:hover {
+    background: #c82333;
+}
+
+.touch-capture-btn.secondary {
+    background: #6c757d;
+}
+
+.touch-capture-btn.secondary:hover {
+    background: #5a6268;
+}
+
+.touch-capture-btn.info {
+    background: #17a2b8;
+}
+
+.touch-capture-btn.info:hover {
+    background: #138496;
+}
+
+.touch-capture-btn.warning {
+    background: #fd7e14;
+}
+
+.touch-capture-btn.warning:hover {
+    background: #e8660e;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .touch-log-panel {
+        width: 250px;
+        right: 10px;
+        top: 10px;
+    }
+    
+    .touch-stats-panel {
+        left: 10px;
+        top: 10px;
+        min-width: 180px;
+    }
+    
+    .touch-capture-controls {
+        padding: 10px;
+    }
+    
+    .touch-capture-btn {
+        padding: 8px 16px;
+        font-size: 0.8rem;
+        margin: 3px;
+    }
+}

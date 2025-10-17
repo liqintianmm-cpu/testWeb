@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能测试页面</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background: #0056b3;
+        }
+        .test-result {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            min-height: 50px;
+        }
+        .status {
+            padding: 5px 10px;
+            border-radius: 3px;
+            margin: 5px 0;
+        }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.warning { background: #fff3cd; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>盲人语音输入助手 - 功能测试</h1>
+    
+    <div class="test-section">
+        <h2>浏览器兼容性测试</h2>
+        <div id="compatibility-results"></div>
+        <button class="test-button" onclick="testCompatibility()">开始测试</button>
+    </div>
+
+    <div class="test-section">
+        <h2>语音识别测试</h2>
+        <div id="voice-results" class="test-result">点击测试按钮开始语音识别测试</div>
+        <button class="test-button" onclick="testVoiceRecognition()">测试语音识别</button>
+        <button class="test-button" onclick="testVoiceSynthesis()">测试语音合成</button>
+    </div>
+
+    <div class="test-section">
+        <h2>触摸事件测试</h2>
+        <div id="touch-area" style="width: 100%; height: 200px; border: 2px dashed #ccc; background: #f9f9f9; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            在此区域触摸或点击测试触摸事件
+        </div>
+        <div id="touch-results" class="test-result">触摸事件将显示在这里</div>
+    </div>
+
+    <div class="test-section">
+        <h2>文本字符识别测试</h2>
+        <p>这个功能可以识别文本输入框中点击位置的字符，显示对应的文字、位置和上下文信息。</p>
+        <div style="margin: 15px 0;">
+            <button class="test-button" onclick="testTouchCapture()">测试文本字符识别</button>
+            <button class="test-button" onclick="clearTouchTestData()">清除识别数据</button>
+        </div>
+        <div id="touch-capture-results" class="test-result">
+            <div style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 10px;">
+                <strong>功能说明：</strong>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>点击"测试文本字符识别"启用功能</li>
+                    <li>在文本输入框中点击任意位置</li>
+                    <li>系统会识别点击位置对应的字符</li>
+                    <li>显示字符内容、行号列号、坐标等信息</li>
+                    <li>支持中文、英文和标点符号识别</li>
+                </ul>
+            </div>
+            <div id="touch-capture-status">等待开始测试...</div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>后端连接测试</h2>
+        <div id="backend-results" class="test-result">点击测试按钮检查后端连接</div>
+        <button class="test-button" onclick="testBackendConnection()">测试后端连接</button>
+    </div>
+
+    <div class="test-section">
+        <h2>无障碍功能测试</h2>
+        <div id="accessibility-results" class="test-result">点击测试按钮检查无障碍功能</div>
+        <button class="test-button" onclick="testAccessibility()">测试无障碍功能</button>
+    </div>
+
+    <script>
+        // 兼容性测试
+        function testCompatibility() {
+            const results = document.getElementById('compatibility-results');
+            let html = '';
+            
+            // 检查语音识别
+            const speechRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            html += `<div class="status ${speechRecognition ? 'success' : 'error'}">
+                语音识别: ${speechRecognition ? '支持' : '不支持'}
+            </div>`;
+            
+            // 检查语音合成
+            const speechSynthesis = 'speechSynthesis' in window;
+            html += `<div class="status ${speechSynthesis ? 'success' : 'error'}">
+                语音合成: ${speechSynthesis ? '支持' : '不支持'}
+            </div>`;
+            
+            // 检查触摸事件
+            const touchEvents = 'ontouchstart' in window;
+            html += `<div class="status ${touchEvents ? 'success' : 'error'}">
+                触摸事件: ${touchEvents ? '支持' : '不支持'}
+            </div>`;
+            
+            // 检查Fetch API
+            const fetchAPI = 'fetch' in window;
+            html += `<div class="status ${fetchAPI ? 'success' : 'error'}">
+                Fetch API: ${fetchAPI ? '支持' : '不支持'}
+            </div>`;
+            
+            // 检查Clipboard API
+            const clipboardAPI = 'clipboard' in navigator;
+            html += `<div class="status ${clipboardAPI ? 'success' : 'error'}">
+                剪贴板API: ${clipboardAPI ? '支持' : '不支持'}
+            </div>`;
+            
+            results.innerHTML = html;
+        }
+
+        // 语音识别测试
+        function testVoiceRecognition() {
+            const results = document.getElementById('voice-results');
+            
+            if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+                results.innerHTML = '<div class="status error">浏览器不支持语音识别</div>';
+                return;
+            }
+            
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            
+            recognition.lang = 'zh-CN';
+            recognition.continuous = false;
+            recognition.interimResults = true;
+            
+            recognition.onstart = function() {
+                results.innerHTML = '<div class="status warning">正在听取语音...</div>';
+            };
+            
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                let interimTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript;
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+                
+                if (finalTranscript) {
+                    results.innerHTML = `<div class="status success">识别结果: ${finalTranscript}</div>`;
+                } else if (interimTranscript) {
+                    results.innerHTML = `<div class="status warning">临时结果: ${interimTranscript}</div>`;
+                }
+            };
+            
+            recognition.onerror = function(event) {
+                results.innerHTML = `<div class="status error">识别错误: ${event.error}</div>`;
+            };
+            
+            recognition.onend = function() {
+                results.innerHTML += '<div class="status warning">识别结束</div>';
+            };
+            
+            recognition.start();
+        }
+
+        // 语音合成测试
+        function testVoiceSynthesis() {
+            const results = document.getElementById('voice-results');
+            
+            if (!('speechSynthesis' in window)) {
+                results.innerHTML = '<div class="status error">浏览器不支持语音合成</div>';
+                return;
+            }
+            
+            const utterance = new SpeechSynthesisUtterance('这是一个语音合成测试');
+            utterance.lang = 'zh-CN';
+            utterance.rate = 0.8;
+            utterance.pitch = 1;
+            
+            utterance.onstart = function() {
+                results.innerHTML = '<div class="status warning">正在播放语音...</div>';
+            };
+            
+            utterance.onend = function() {
+                results.innerHTML = '<div class="status success">语音播放完成</div>';
+            };
+            
+            utterance.onerror = function(event) {
+                results.innerHTML = `<div class="status error">播放错误: ${event.error}</div>`;
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+
+        // 触摸事件测试
+        const touchArea = document.getElementById('touch-area');
+        const touchResults = document.getElementById('touch-results');
+        
+        let touchCount = 0;
+        
+        touchArea.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            touchCount++;
+            touchResults.innerHTML = `<div class="status success">触摸开始 - 第${touchCount}次触摸</div>`;
+        });
+        
+        touchArea.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            touchResults.innerHTML += `<div class="status warning">触摸结束</div>`;
+        });
+        
+        touchArea.addEventListener('click', function(e) {
+            touchCount++;
+            touchResults.innerHTML = `<div class="status success">鼠标点击 - 第${touchCount}次点击</div>`;
+        });
+
+        // 后端连接测试
+        async function testBackendConnection() {
+            const results = document.getElementById('backend-results');
+            results.innerHTML = '<div class="status warning">正在测试后端连接...</div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/', {
+                    method: 'GET',
+                    mode: 'cors'
+                });
+                
+                if (response.ok) {
+                    const text = await response.text();
+                    results.innerHTML = `<div class="status success">后端连接成功: ${text}</div>`;
+                } else {
+                    results.innerHTML = `<div class="status error">后端响应错误: ${response.status}</div>`;
+                }
+            } catch (error) {
+                results.innerHTML = `<div class="status error">后端连接失败: ${error.message}</div>`;
+            }
+        }
+
+        // 无障碍功能测试
+        function testAccessibility() {
+            const results = document.getElementById('accessibility-results');
+            let html = '';
+            
+            // 检查ARIA支持
+            const ariaSupport = 'ariaLive' in document.createElement('div');
+            html += `<div class="status ${ariaSupport ? 'success' : 'error'}">
+                ARIA支持: ${ariaSupport ? '支持' : '不支持'}
+            </div>`;
+            
+            // 检查屏幕阅读器检测
+            const screenReader = window.speechSynthesis && window.speechSynthesis.getVoices().length > 0;
+            html += `<div class="status ${screenReader ? 'success' : 'warning'}">
+                语音引擎: ${screenReader ? '可用' : '不可用'}
+            </div>`;
+            
+            // 检查高对比度模式
+            const highContrast = window.matchMedia('(prefers-contrast: high)').matches;
+            html += `<div class="status ${highContrast ? 'success' : 'warning'}">
+                高对比度模式: ${highContrast ? '已启用' : '未启用'}
+            </div>`;
+            
+            // 检查减少动画模式
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            html += `<div class="status ${reducedMotion ? 'success' : 'warning'}">
+                减少动画模式: ${reducedMotion ? '已启用' : '未启用'}
+            </div>`;
+            
+            results.innerHTML = html;
+        }
+
+        // 文本字符识别测试
+        function testTouchCapture() {
+            const statusDiv = document.getElementById('touch-capture-status');
+            
+            // 检查是否有文本识别功能
+            if (typeof displayTextPosition === 'function') {
+                statusDiv.innerHTML = '<div class="status success">文本字符识别功能已启用！请在文本输入框中点击任意位置来测试功能。</div>';
+                
+                // 3秒后显示使用说明
+                setTimeout(() => {
+                    statusDiv.innerHTML += '<div class="status warning" style="margin-top: 10px;">识别结果将实时显示在界面下方的"文本字符识别"区域。</div>';
+                }, 3000);
+                
+            } else {
+                statusDiv.innerHTML = '<div class="status error">文本字符识别功能未加载，请确保已加载主应用程序。</div>';
+            }
+        }
+
+        function clearTouchTestData() {
+            const statusDiv = document.getElementById('touch-capture-status');
+            
+            if (typeof clearTouchPositionDisplay === 'function') {
+                clearTouchPositionDisplay();
+                statusDiv.innerHTML = '<div class="status success">文本识别数据已清除。</div>';
+            } else {
+                statusDiv.innerHTML = '<div class="status error">清除功能未加载。</div>';
+            }
+        }
+
+        // 页面加载时自动运行兼容性测试
+        window.addEventListener('load', function() {
+            testCompatibility();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>盲人输入助手</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>盲人输入助手</h1>
+            <p>语音、手势、文本输入</p>
+        </header>
+
+        <main>
+            <!-- 文本输入区域 -->
+            <section class="input-section" id="text-section">
+                <h2>文本输入</h2>
+                <textarea id="text-input" 
+                         placeholder="在此输入文本..." 
+                         aria-label="文本输入区域"
+                         rows="6"></textarea>
+            </section>
+
+            <!-- 测试段落选择 -->
+            <section class="input-section" id="test-section">
+                <h2>测试段落</h2>
+                <div class="test-paragraphs">
+                    <button class="test-btn" data-paragraph="0">段落1 - 日常生活</button>
+                    <button class="test-btn" data-paragraph="1">段落2 - 工作场景</button>
+                    <button class="test-btn" data-paragraph="2">段落3 - 购物体验</button>
+                    <button class="test-btn" data-paragraph="3">段落4 - 学习环境</button>
+                    <button class="test-btn" data-paragraph="4">段落5 - 社交活动</button>
+                </div>
+            </section>
+
+            <!-- 语音输入区域 -->
+            <section class="input-section" id="voice-section">
+                <h2>语音输入</h2>
+                <div class="voice-controls">
+                    <button id="hold-to-record" class="voice-btn" aria-label="按住录音">
+                        按住录音
+                    </button>
+                </div>
+                
+            </section>
+
+            <!-- 手势输入区域 -->
+            <section class="input-section" id="gesture-section">
+                <h2>手势输入</h2>
+                <div class="gesture-area" id="gesture-area" tabindex="0" 
+                     role="application" 
+                     aria-label="手势输入区域，可以在此处绘制字母轨迹">
+                    <div class="gesture-instructions">
+                        在此区域绘制字母轨迹
+                    </div>
+                </div>
+                <div class="gesture-controls">
+                    <button id="clear-gesture" class="control-btn">清除轨迹</button>
+                    <button id="submit-gesture" class="control-btn">识别手势</button>
+                </div>
+                <div class="gesture-result" id="gesture-result" aria-live="polite"></div>
+            </section>
+
+            <!-- 建议单词显示区域 -->
+            <section class="suggestions-section" id="suggestions-section">
+                <h2>建议单词</h2>
+                <div class="suggestions" id="suggestions" role="list" aria-label="建议单词列表">
+                    <!-- 建议单词将在这里显示 -->
+                </div>
+            </section>
+
+            <!-- 最终文本显示区域 -->
+            <section class="output-section" id="output-section">
+                <h2>最终文本</h2>
+                <div class="final-text" id="final-text" aria-live="polite">
+                    您的文本将显示在这里...
+                </div>
+                <div class="output-controls">
+                    <button id="clear-all" class="control-btn">清除所有</button>
+                    <button id="copy-text" class="control-btn">复制文本</button>
+                    <button id="read-final" class="control-btn">朗读最终文本</button>
+                </div>
+            </section>
+        </main>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
