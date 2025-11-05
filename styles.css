@@ -517,6 +517,45 @@ main {
     background: #e8660e;
 }
 
+/* 语音控制按钮样式 */
+.speech-controls {
+    margin-top: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.speech-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s ease;
+}
+
+.speech-btn:hover {
+    background: #0056b3;
+}
+
+.speech-btn:active {
+    background: #004085;
+}
+
+.speech-btn.active {
+    background: #28a745;
+}
+
+.speech-btn.danger {
+    background: #dc3545;
+}
+
+.speech-btn.danger:hover {
+    background: #c82333;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
     .touch-log-panel {
@@ -539,5 +578,14 @@ main {
         padding: 8px 16px;
         font-size: 0.8rem;
         margin: 3px;
+    }
+    
+    .speech-controls {
+        flex-direction: column;
+    }
+    
+    .speech-btn {
+        width: 100%;
+        margin-bottom: 5px;
     }
 }

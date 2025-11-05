@@ -1,86 +1,86 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>盲人输入助手</title>
+    <title>Accessibility Input Assistant</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>盲人输入助手</h1>
-            <p>语音、手势、文本输入</p>
+            <h1>Accessibility Input Assistant</h1>
+            <p>Voice, Gesture, and Text Input</p>
         </header>
 
         <main>
-            <!-- 文本输入区域 -->
+            <!-- Text Input Area -->
             <section class="input-section" id="text-section">
-                <h2>文本输入</h2>
+                <h2>Text Input</h2>
                 <textarea id="text-input" 
-                         placeholder="在此输入文本..." 
-                         aria-label="文本输入区域"
+                         placeholder="Enter text here..." 
+                         aria-label="Text input area"
                          rows="6"></textarea>
             </section>
 
-            <!-- 测试段落选择 -->
+            <!-- Test Paragraph Selection -->
             <section class="input-section" id="test-section">
-                <h2>测试段落</h2>
+                <h2>Test Paragraphs</h2>
                 <div class="test-paragraphs">
-                    <button class="test-btn" data-paragraph="0">段落1 - 日常生活</button>
-                    <button class="test-btn" data-paragraph="1">段落2 - 工作场景</button>
-                    <button class="test-btn" data-paragraph="2">段落3 - 购物体验</button>
-                    <button class="test-btn" data-paragraph="3">段落4 - 学习环境</button>
-                    <button class="test-btn" data-paragraph="4">段落5 - 社交活动</button>
+                    <button class="test-btn" data-paragraph="0">Paragraph 1 </button>
+                    <button class="test-btn" data-paragraph="1">Paragraph 2 </button>
+                    <button class="test-btn" data-paragraph="2">Paragraph 3 </button>
+                    <button class="test-btn" data-paragraph="3">Paragraph 4 </button>
+                    <button class="test-btn" data-paragraph="4">Paragraph 5 </button>
                 </div>
             </section>
 
-            <!-- 语音输入区域 -->
+            <!-- Voice Input Area -->
             <section class="input-section" id="voice-section">
-                <h2>语音输入</h2>
+                <h2>Voice Input</h2>
                 <div class="voice-controls">
-                    <button id="hold-to-record" class="voice-btn" aria-label="按住录音">
-                        按住录音
+                    <button id="hold-to-record" class="voice-btn" aria-label="Hold to record">
+                        Hold to Record
                     </button>
                 </div>
                 
             </section>
 
-            <!-- 手势输入区域 -->
+            <!-- Gesture Input Area -->
             <section class="input-section" id="gesture-section">
-                <h2>手势输入</h2>
+                <h2>Gesture Input</h2>
                 <div class="gesture-area" id="gesture-area" tabindex="0" 
                      role="application" 
-                     aria-label="手势输入区域，可以在此处绘制字母轨迹">
+                     aria-label="Gesture input area, draw letter trajectories here">
                     <div class="gesture-instructions">
-                        在此区域绘制字母轨迹
+                        Draw letter trajectories in this area
                     </div>
                 </div>
                 <div class="gesture-controls">
-                    <button id="clear-gesture" class="control-btn">清除轨迹</button>
-                    <button id="submit-gesture" class="control-btn">识别手势</button>
+                    <button id="clear-gesture" class="control-btn">Clear Trajectory</button>
+                    <button id="submit-gesture" class="control-btn">Recognize Gesture</button>
                 </div>
                 <div class="gesture-result" id="gesture-result" aria-live="polite"></div>
             </section>
 
-            <!-- 建议单词显示区域 -->
+            <!-- Word Suggestions Display Area -->
             <section class="suggestions-section" id="suggestions-section">
-                <h2>建议单词</h2>
-                <div class="suggestions" id="suggestions" role="list" aria-label="建议单词列表">
-                    <!-- 建议单词将在这里显示 -->
+                <h2>Word Suggestions</h2>
+                <div class="suggestions" id="suggestions" role="list" aria-label="Word suggestions list">
+                    <!-- Word suggestions will be displayed here -->
                 </div>
             </section>
 
-            <!-- 最终文本显示区域 -->
+            <!-- Final Text Display Area -->
             <section class="output-section" id="output-section">
-                <h2>最终文本</h2>
+                <h2>Final Text</h2>
                 <div class="final-text" id="final-text" aria-live="polite">
-                    您的文本将显示在这里...
+                    Your text will be displayed here...
                 </div>
                 <div class="output-controls">
-                    <button id="clear-all" class="control-btn">清除所有</button>
-                    <button id="copy-text" class="control-btn">复制文本</button>
-                    <button id="read-final" class="control-btn">朗读最终文本</button>
+                    <button id="clear-all" class="control-btn">Clear All</button>
+                    <button id="copy-text" class="control-btn">Copy Text</button>
+                    <button id="read-final" class="control-btn">Read Final Text</button>
                 </div>
             </section>
         </main>

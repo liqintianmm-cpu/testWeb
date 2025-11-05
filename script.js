@@ -7,6 +7,11 @@ let gesturePoints = [];
 let isDrawing = false;
 let currentText = '';
 let finalText = '';
+
+// 语音合成相关变量
+let speechSynthesis = window.speechSynthesis;
+let currentUtterance = null;
+let isSpeaking = false;
 let touchPositions = [];
 let isCapturingTouch = false;
 
@@ -19,6 +24,9 @@ const API_BASE_URL = 'http://localhost:8000';
 // 初始化
 document.addEventListener('DOMContentLoaded', function() {
     initializeApp();
+    
+    // 添加测试功能
+    addTestFunctionality();
 });
 
 function initializeApp() {
@@ -28,7 +36,9 @@ function initializeApp() {
     setupTextInput();
     setupTestParagraphs();
     setupEventListeners();
-    announceToScreenReader('盲人输入助手已加载完成');
+    setupTextToSpeech();
+    setupPageNarration();
+    announceToScreenReader('Text Input Assistant has been loaded successfully');
 }
 
 // 语音输入功能
@@ -362,74 +372,275 @@ function handleTextInputClick(e) {
     announceToScreenReader(`点击位置识别: ${character}`);
 }
 
-// 根据点击位置获取对应的字符
+// 根据点击位置获取对应的字符 - 使用浏览器原生API的精确版本
 function getCharacterAtPosition(textInput, x, y) {
     const rect = textInput.getBoundingClientRect();
     const relativeX = x - rect.left;
     const relativeY = y - rect.top;
     
-    // 获取文本输入框的样式信息
-    const computedStyle = window.getComputedStyle(textInput);
-    const fontSize = parseFloat(computedStyle.fontSize);
-    const fontFamily = computedStyle.fontFamily;
-    const lineHeight = parseFloat(computedStyle.lineHeight) || fontSize * 1.2;
-    
-    // 估算字符宽度（中文字符约为字体大小的1倍，英文字符约为0.6倍）
-    const avgCharWidth = fontSize * 0.8;
-    
-    // 计算点击位置对应的字符索引
     const text = textInput.value || '';
-    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
     
-    // 计算点击位置在文本中的位置
-    const adjustedX = relativeX - paddingLeft;
-    const adjustedY = relativeY - paddingTop;
-    
-    // 计算行号
-    const lineNumber = Math.floor(adjustedY / lineHeight);
-    
-    // 计算在该行的字符位置
-    const charIndex = Math.floor(adjustedX / avgCharWidth);
-    
-    // 获取文本行（简单按换行符分割）
-    const lines = text.split('\n');
-    if (lineNumber >= 0 && lineNumber < lines.length) {
-        const line = lines[lineNumber];
-        if (charIndex >= 0 && charIndex < line.length) {
-            const character = line[charIndex];
-            return {
-                character: character,
-                position: `${lineNumber + 1}行${charIndex + 1}列`,
-                coordinates: `(${Math.round(relativeX)}, ${Math.round(relativeY)})`,
-                lineText: line
-            };
-        } else if (charIndex >= line.length) {
-            return {
-                character: '[行尾]',
-                position: `${lineNumber + 1}行末尾`,
-                coordinates: `(${Math.round(relativeX)}, ${Math.round(relativeY)})`,
-                lineText: line
-            };
-        }
-    }
-    
-    // 如果点击在文本末尾或空行
+    // 如果点击在空文本区域
     if (text.length === 0) {
         return {
             character: '[空文本]',
-            position: '文本开头',
+            position: 'Empty text area',
             coordinates: `(${Math.round(relativeX)}, ${Math.round(relativeY)})`,
+            word: '',
             lineText: ''
         };
     }
     
-    return {
-        character: '[位置超出]',
-        position: `${lineNumber + 1}行${charIndex + 1}列`,
-        coordinates: `(${Math.round(relativeX)}, ${Math.round(relativeY)})`,
-        lineText: lines[lines.length - 1] || ''
-    };
+    // 使用浏览器原生的字符位置计算方法
+    const result = getCharacterPositionNative(textInput, relativeX, relativeY, text);
+    
+    return result;
+}
+
+// 使用浏览器原生API的字符位置计算
+function getCharacterPositionNative(textInput, x, y, text) {
+    // 保存当前选择状态
+    const originalSelectionStart = textInput.selectionStart;
+    const originalSelectionEnd = textInput.selectionEnd;
+    
+    try {
+        // 创建一个临时的选择范围来获取点击位置
+        const range = document.createRange();
+        const selection = window.getSelection();
+        
+        // 清除现有选择
+        selection.removeAllRanges();
+        
+        // 设置选择范围到文本输入框
+        range.selectNodeContents(textInput);
+        selection.addRange(range);
+        
+        // 使用浏览器原生的坐标到字符位置转换
+        const charIndex = getCharacterIndexFromCoordinates(textInput, x, y);
+        
+        // 恢复原始选择状态
+        textInput.setSelectionRange(originalSelectionStart, originalSelectionEnd);
+        
+        // 分割文本行
+        const lines = text.split('\n');
+        
+        // 计算行号和列号
+        let lineNumber = 0;
+        let columnNumber = 0;
+        let currentIndex = 0;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const lineLength = lines[i].length;
+            if (charIndex <= currentIndex + lineLength) {
+                lineNumber = i;
+                columnNumber = charIndex - currentIndex;
+                break;
+            }
+            currentIndex += lineLength + 1; // +1 for newline character
+        }
+        
+        const line = lines[lineNumber] || '';
+        
+        // 获取光标位置的完整单词
+        const word = getWordAtPosition(line, columnNumber);
+        
+        // 获取字符
+        let character = '';
+        if (columnNumber >= 0 && columnNumber < line.length) {
+            character = line[columnNumber];
+        } else if (columnNumber >= line.length) {
+            character = '[行尾]';
+        } else {
+            character = '[位置超出]';
+        }
+        
+        // 调试信息
+        const debugInfo = {
+            lineNumber: lineNumber,
+            columnNumber: columnNumber,
+            charIndex: charIndex,
+            adjustedX: Math.round(x),
+            adjustedY: Math.round(y),
+            lineHeight: Math.round(parseFloat(window.getComputedStyle(textInput).lineHeight) || parseFloat(window.getComputedStyle(textInput).fontSize) * 1.2),
+            fontSize: Math.round(parseFloat(window.getComputedStyle(textInput).fontSize)),
+            paddingLeft: Math.round(parseFloat(window.getComputedStyle(textInput).paddingLeft) || 0),
+            paddingTop: Math.round(parseFloat(window.getComputedStyle(textInput).paddingTop) || 0),
+            lineLength: line.length,
+            textLength: text.length
+        };
+        
+        return {
+            character: character,
+            position: `Line ${lineNumber + 1}, Column ${columnNumber + 1}`,
+            coordinates: `(${Math.round(x)}, ${Math.round(y)})`,
+            word: word,
+            lineText: line,
+            debug: debugInfo
+        };
+        
+    } catch (error) {
+        console.error('字符位置计算错误:', error);
+        
+        // 恢复原始选择状态
+        textInput.setSelectionRange(originalSelectionStart, originalSelectionEnd);
+        
+        return {
+            character: '[计算错误]',
+            position: 'Calculation error',
+            coordinates: `(${Math.round(x)}, ${Math.round(y)})`,
+            word: '',
+            lineText: '',
+            debug: { error: error.message }
+        };
+    }
+}
+
+// 使用简单但可靠的坐标到字符索引算法
+function getCharacterIndexFromCoordinates(textarea, x, y) {
+    // 获取textarea的样式和位置信息
+    const rect = textarea.getBoundingClientRect();
+    const style = window.getComputedStyle(textarea);
+    
+    // 计算相对于textarea的坐标
+    const relativeX = x - rect.left;
+    const relativeY = y - rect.top;
+    
+    // 获取样式信息
+    const fontSize = parseFloat(style.fontSize);
+    const lineHeight = parseFloat(style.lineHeight) || fontSize * 1.2;
+    const paddingLeft = parseFloat(style.paddingLeft) || 0;
+    const paddingTop = parseFloat(style.paddingTop) || 0;
+    
+    // 调整坐标（减去内边距）
+    const adjustedX = relativeX - paddingLeft;
+    const adjustedY = relativeY - paddingTop;
+    
+    // 分割文本行
+    const text = textarea.value;
+    const lines = text.split('\n');
+    
+    // 计算行号
+    const lineNumber = Math.floor(adjustedY / lineHeight);
+    
+    // 检查行号是否有效
+    if (lineNumber < 0 || lineNumber >= lines.length) {
+        return Math.max(0, text.length - 1);
+    }
+    
+    const line = lines[lineNumber];
+    
+    // 使用Canvas API精确计算字符位置
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    context.font = style.font;
+    
+    let currentX = 0;
+    let charIndex = 0;
+    
+    // 逐个字符测量，找到点击位置
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const charWidth = context.measureText(char).width;
+        
+        // 如果点击位置在当前字符范围内
+        if (adjustedX >= currentX && adjustedX < currentX + charWidth) {
+            // 如果点击在字符的前半部分，选择这个字符
+            if (adjustedX < currentX + charWidth / 2) {
+                charIndex = i;
+            } else {
+                charIndex = i + 1;
+            }
+            break;
+        }
+        
+        currentX += charWidth;
+        // 不要在这里更新charIndex，只有在找到匹配时才更新
+    }
+    
+    // 如果点击位置超出当前行，设置为行尾
+    if (adjustedX >= currentX) {
+        charIndex = line.length;
+    }
+    
+    // 计算在整个文本中的绝对位置
+    let absoluteIndex = 0;
+    for (let i = 0; i < lineNumber; i++) {
+        absoluteIndex += lines[i].length + 1; // +1 for newline
+    }
+    absoluteIndex += charIndex;
+    
+    return Math.min(absoluteIndex, text.length);
+}
+
+// 辅助函数：根据X坐标计算字符索引 - 更精确版本
+function getCharacterIndexAtX(line, x, fontSize) {
+    if (!line || line.length === 0) return 0;
+    
+    // 创建临时canvas来测量字符宽度
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    // 获取文本输入框的字体样式
+    const textInput = document.getElementById('text-input');
+    const computedStyle = window.getComputedStyle(textInput);
+    context.font = computedStyle.font;
+    
+    let currentX = 0;
+    
+    // 逐个字符测量宽度，找到点击位置所在的字符
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        const charWidth = context.measureText(char).width;
+        
+        // 如果点击位置在当前字符范围内
+        if (x >= currentX && x < currentX + charWidth) {
+            // 如果点击在字符的前半部分，选择这个字符
+            if (x < currentX + charWidth / 2) {
+                return i;
+            } else {
+                return i + 1;
+            }
+        }
+        
+        currentX += charWidth;
+    }
+    
+    // 如果点击位置超过所有字符，返回行尾
+    return line.length;
+}
+
+// 获取光标位置的完整单词
+function getWordAtPosition(line, charIndex) {
+    if (!line || line.length === 0) return '';
+    
+    // 定义单词边界字符
+    const wordBoundaries = /[\s\.,!?;:'"()[\]{}]/;
+    
+    // 找到单词的开始位置
+    let start = charIndex;
+    while (start > 0 && !wordBoundaries.test(line[start - 1])) {
+        start--;
+    }
+    
+    // 找到单词的结束位置
+    let end = charIndex;
+    while (end < line.length && !wordBoundaries.test(line[end])) {
+        end++;
+    }
+    
+    // 提取单词
+    const word = line.substring(start, end).trim();
+    
+    // 如果单词为空，返回光标位置的字符
+    if (word === '') {
+        if (charIndex < line.length) {
+            return line[charIndex];
+        } else {
+            return '[行尾]';
+        }
+    }
+    
+    return word;
 }
 
 // 创建触摸显示区域
@@ -529,19 +740,34 @@ function displayTextPosition(characterInfo, touchData) {
     // 根据识别的字符信息创建显示内容
     if (characterInfo.character === '[空文本]') {
         positionEntry.innerHTML = `
-            <div style="color: #666;">${time} - 点击了空文本区域</div>
+            <div style="color: #666;">${time} - Clicked on empty text area</div>
         `;
     } else if (characterInfo.character === '[位置超出]') {
         positionEntry.innerHTML = `
-            <div style="color: #ff6b6b;">${time} - 点击位置超出文本范围</div>
-            <div style="color: #888; font-size: 12px;">坐标: ${characterInfo.coordinates}</div>
+            <div style="color: #ff6b6b;">${time} - Click position out of text range</div>
+            <div style="color: #888; font-size: 12px;">Coordinates: ${characterInfo.coordinates}</div>
         `;
     } else {
+        let debugInfo = '';
+        if (characterInfo.debug) {
+            debugInfo = `
+                <div style="color: #95a5a6; font-size: 10px; margin-top: 4px;">
+                    Debug: Line ${characterInfo.debug.lineNumber + 1}, Char ${characterInfo.debug.charIndex + 1}<br>
+                    Adjusted: X=${characterInfo.debug.adjustedX}, Y=${characterInfo.debug.adjustedY}<br>
+                    Style: LineHeight=${characterInfo.debug.lineHeight}, FontSize=${characterInfo.debug.fontSize}<br>
+                    Padding: Left=${characterInfo.debug.paddingLeft}, Top=${characterInfo.debug.paddingTop}<br>
+                    Text: LineLength=${characterInfo.debug.lineLength}, TotalLength=${characterInfo.debug.textLength}
+                </div>
+            `;
+        }
+        
         positionEntry.innerHTML = `
-            <div style="color: #2ecc71; font-weight: bold;">${time} - 识别字符: "${characterInfo.character}"</div>
-            <div style="color: #3498db;">位置: ${characterInfo.position}</div>
-            <div style="color: #888; font-size: 12px;">坐标: ${characterInfo.coordinates}</div>
-            ${characterInfo.lineText ? `<div style="color: #95a5a6; font-size: 11px; margin-top: 2px;">行内容: "${characterInfo.lineText}"</div>` : ''}
+            <div style="color: #2ecc71; font-weight: bold;">${time} - Recognized character: "${characterInfo.character}"</div>
+            <div style="color: #3498db;">Position: ${characterInfo.position}</div>
+            <div style="color: #888; font-size: 12px;">Coordinates: ${characterInfo.coordinates}</div>
+            ${characterInfo.word ? `<div style="color: #e74c3c; font-weight: bold; font-size: 13px; margin-top: 3px;">Word: "${characterInfo.word}"</div>` : ''}
+            ${characterInfo.lineText ? `<div style="color: #95a5a6; font-size: 11px; margin-top: 2px;">Line content: "${characterInfo.lineText}"</div>` : ''}
+            ${debugInfo}
         `;
     }
     
@@ -574,7 +800,7 @@ function addTouchPositionDisplay() {
     `;
     
     displayDiv.innerHTML = `
-        <h3 style="margin-bottom: 15px; color: #495057;">文本字符识别</h3>
+        <h3 style="margin-bottom: 15px; color: #495057;">Text Character Recognition</h3>
         <div id="touch-position-display" style="
             background: white;
             border: 1px solid #ddd;
@@ -586,7 +812,7 @@ function addTouchPositionDisplay() {
             font-size: 13px;
             line-height: 1.4;
         ">
-            <div style="color: #666; text-align: center;">在文本输入框中点击或触摸，识别出的字符信息将显示在这里</div>
+            <div style="color: #666; text-align: center;">Click or touch in the text input box, and the recognized character information will be displayed here</div>
         </div>
     `;
     
@@ -597,7 +823,7 @@ function addTouchPositionDisplay() {
 function clearTouchPositionDisplay() {
     const positionDisplay = document.getElementById('touch-position-display');
     if (positionDisplay) {
-        positionDisplay.innerHTML = '<div style="color: #666; text-align: center;">在文本输入框中点击或触摸，识别出的字符信息将显示在这里</div>';
+        positionDisplay.innerHTML = '<div style="color: #666; text-align: center;">Click or touch in the text input box, and the recognized character information will be displayed here</div>';
     }
     
     // 清除触摸指示器
@@ -636,7 +862,7 @@ function setupTestParagraphs() {
             // 将对应段落放入文本框
             textInput.value = testParagraphs[index];
             currentText = testParagraphs[index];
-            updateFinalText();
+    updateFinalText();
             announceToScreenReader('已加载测试段落 ' + (index + 1));
         });
     });
@@ -646,7 +872,7 @@ function setupTestParagraphs() {
 function setupTextInput() {
     const textInput = document.getElementById('text-input');
     textInput.addEventListener('input', handleTextChange);
-}
+    }
 
 function handleTextChange(e) {
     currentText = e.target.value;
@@ -790,3 +1016,538 @@ window.addEventListener('online', function() {
 window.addEventListener('offline', function() {
     announceToScreenReader('网络连接已断开，部分功能可能不可用');
 });
+
+// 添加测试功能
+function addTestFunctionality() {
+    const textInput = document.getElementById('text-input');
+    if (!textInput) return;
+    
+    // 添加键盘快捷键测试
+    textInput.addEventListener('keydown', function(e) {
+        // Ctrl + Shift + T: 测试坐标计算
+        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
+            e.preventDefault();
+            testCoordinateCalculation();
+        }
+        
+        // Ctrl + R: 朗读选中文本
+        if (e.ctrlKey && e.key === 'r') {
+            e.preventDefault();
+            readSelectedText(textInput);
+        }
+        
+        // Ctrl + A: 朗读全部文本
+        if (e.ctrlKey && e.key === 'a') {
+            e.preventDefault();
+            const text = textInput.value;
+            if (text) {
+                speakText(text);
+            }
+        }
+        
+        // Escape: 停止朗读
+        if (e.key === 'Escape') {
+            stopSpeaking();
+        }
+    });
+    
+    // 添加右键菜单测试
+    textInput.addEventListener('contextmenu', function(e) {
+        e.preventDefault();
+        testCoordinateCalculation();
+    });
+}
+
+// 测试坐标计算功能
+function testCoordinateCalculation() {
+    const textInput = document.getElementById('text-input');
+    const rect = textInput.getBoundingClientRect();
+    const computedStyle = window.getComputedStyle(textInput);
+    
+    console.log('=== 坐标计算测试 ===');
+    console.log('TextInput rect:', rect);
+    console.log('Font size:', computedStyle.fontSize);
+    console.log('Line height:', computedStyle.lineHeight);
+    console.log('Padding left:', computedStyle.paddingLeft);
+    console.log('Padding top:', computedStyle.paddingTop);
+    console.log('Font family:', computedStyle.fontFamily);
+    
+    // 测试几个关键位置的字符识别
+    const testPositions = [
+        { x: rect.left + 20, y: rect.top + 20, desc: '左上角' },
+        { x: rect.left + rect.width / 2, y: rect.top + 20, desc: '第一行中间' },
+        { x: rect.left + rect.width - 20, y: rect.top + 20, desc: '右上角' }
+    ];
+    
+    testPositions.forEach((pos, index) => {
+        const character = getCharacterAtPosition(textInput, pos.x, pos.y);
+        console.log(`测试位置 ${index + 1} (${pos.desc}):`, character);
+    });
+}
+
+// 语音合成功能 - 类似iPhone旁白
+function setupTextToSpeech() {
+    const textInput = document.getElementById('text-input');
+    if (!textInput) return;
+    
+    // 为文本输入框添加点击朗读功能
+    textInput.addEventListener('click', function(e) {
+        handleTextClick(e, textInput);
+    });
+    
+    // 为文本输入框添加触摸朗读功能
+    textInput.addEventListener('touchend', function(e) {
+        handleTextClick(e, textInput);
+    });
+    
+    // 添加键盘导航朗读功能
+    textInput.addEventListener('keyup', function(e) {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight' || 
+            e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            readCurrentPosition(textInput);
+        }
+    });
+}
+
+
+// 全页面点击朗读（扩展旁白到整个页面）
+function setupPageNarration() {
+    // 避免重复绑定
+    if (window.__pageNarrationBound) return;
+    window.__pageNarrationBound = true;
+
+    const shouldIgnoreTarget = (el) => {
+        if (!el) return true;
+        // 忽略交互/输入控件，避免影响正常点击
+        const tag = el.tagName ? el.tagName.toLowerCase() : '';
+        if (['input', 'textarea', 'select', 'button', 'label'].includes(tag)) return true;
+        if (tag === 'a' && el.getAttribute('href')) return true;
+        if (el.isContentEditable) return true;
+        // 忽略具有 data-no-tts 的元素
+        if (el.closest && el.closest('[data-no-tts]')) return true;
+        // 如果在旁白控制按钮区域，忽略
+        if (el.closest && el.closest('#speech-controls')) return true;
+        return false;
+    };
+
+    const handler = (event) => {
+        try {
+            const textInput = document.getElementById('text-input');
+            // 如果文本框处于焦点，且点击不在文本框内，不做全局朗读干扰
+            if (textInput && document.activeElement === textInput && !(textInput === event.target || (textInput.contains && textInput.contains(event.target)))) {
+                return;
+            }
+            // 如果点击发生在文本框内部，则交给文本框自身的点击处理函数
+            if (textInput && (event.target === textInput || (textInput.contains && textInput.contains(event.target)))) {
+                return;
+            }
+            if (shouldIgnoreTarget(event.target)) return;
+
+            // 基于当前选区/目标节点，提取被点击的“单词/字符”（不扩展窗口）
+            const text = getWordFromSelection(event);
+            if (text && text.trim()) {
+                stopSpeaking();
+                speakText(text);
+            }
+        } catch (e) {
+            // 静默失败，避免打断正常点击
+        }
+    };
+
+    // 使用捕获阶段更容易在元素阻止冒泡前拿到事件坐标
+    document.addEventListener('click', handler, true);
+    document.addEventListener('touchend', handler, true);
+}
+
+// 从当前选区/目标节点提取“单词/字符”（不扩展窗口）
+function getWordFromSelection(event) {
+    const sel = window.getSelection && window.getSelection();
+    let node = sel && sel.anchorNode ? sel.anchorNode : null;
+    let offset = sel && typeof sel.anchorOffset === 'number' ? sel.anchorOffset : 0;
+
+    // 若选区无效，尝试从目标节点获取文本节点
+    if (!node) {
+        node = nearestTextNodeFromTarget(event && event.target);
+        offset = 0;
+    }
+
+    if (!node) return null;
+    if (node.nodeType !== Node.TEXT_NODE) {
+        node = nearestTextNodeFromTarget(node);
+        offset = 0;
+    }
+    if (!node || !node.nodeValue) return null;
+
+    const text = node.nodeValue;
+    const idx = Math.max(0, Math.min(offset, text.length - 1));
+    return extractWordOrChar(text, idx);
+}
+
+function nearestTextNodeFromTarget(target) {
+    if (!target) return null;
+    if (target.nodeType === Node.TEXT_NODE) return target;
+    // 先向内查找
+    const inward = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, {
+        acceptNode: (n) => n.nodeValue && n.nodeValue.trim() ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+    });
+    const inside = inward.nextNode();
+    if (inside) return inside;
+    // 再向附近查找
+    return findNearestTextNode(target);
+}
+
+// 将文本按 token 拆分并返回窗口字符串
+function getTokensWindow(line, index, windowSize) {
+    const tokens = tokenizeWithRanges(line);
+    if (tokens.length === 0) return null;
+
+    // 找到包含 index 的 token；若在空白或间隙，寻找最近的非空白 token
+    let hit = -1;
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (index >= t.start && index < t.end) { hit = i; break; }
+    }
+    if (hit === -1) {
+        let best = -1, bestDist = Infinity;
+        for (let i = 0; i < tokens.length; i++) {
+            const t = tokens[i];
+            const dist = Math.min(Math.abs(index - t.start), Math.abs(index - (t.end - 1)));
+            if (dist < bestDist) { bestDist = dist; best = i; }
+        }
+        hit = best === -1 ? 0 : best;
+    }
+
+    const start = Math.max(0, hit - windowSize);
+    const end = Math.min(tokens.length - 1, hit + windowSize);
+    return joinTokens(tokens.slice(start, end + 1));
+}
+
+// 将字符串 token 化并附带起止位置
+function tokenizeWithRanges(text) {
+    const tokens = [];
+    let i = 0;
+    const isWordChar = (c) => /[\w']/.test(c);
+    const isCJK = (c) => /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/.test(c);
+    const isWhitespace = (c) => /\s/.test(c);
+
+    while (i < text.length) {
+        const c = text[i];
+        if (isWhitespace(c)) { i++; continue; }
+        if (isCJK(c)) {
+            tokens.push({ text: c, start: i, end: i + 1, cjk: true });
+            i++;
+            continue;
+        }
+        if (isWordChar(c)) {
+            const s = i;
+            i++;
+            while (i < text.length && isWordChar(text[i])) i++;
+            tokens.push({ text: text.slice(s, i), start: s, end: i, cjk: false });
+            continue;
+        }
+        // 标点作为独立 token
+        tokens.push({ text: c, start: i, end: i + 1, cjk: false });
+        i++;
+    }
+    return tokens;
+}
+
+function joinTokens(tokens) {
+    if (!tokens || tokens.length === 0) return '';
+    let result = '';
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        const prev = tokens[i - 1];
+        const needSpace = prev && !prev.cjk && !t.cjk && /[\w']$/.test(prev.text) && /^[\w']/.test(t.text);
+        result += (needSpace ? ' ' : '') + t.text;
+    }
+    return result;
+}
+
+// 基于 textarea 的光标位置，返回中心词前后各 windowSize 个 token
+function getTokensAroundTextareaCaret(textInput, windowSize) {
+    if (!textInput) return null;
+    const text = textInput.value || '';
+    if (!text) return null;
+    const caret = Math.max(0, (textInput.selectionStart || 0) - 1);
+    return getTokensWindow(text, caret, windowSize);
+}
+
+function findNearestTextNode(el) {
+    // 向上找同级文本
+    let cur = el;
+    while (cur && cur !== document && cur.nodeType !== Node.TEXT_NODE) {
+        const prev = previousTextNode(cur);
+        if (prev) return prev;
+        const next = nextTextNode(cur);
+        if (next) return next;
+        cur = cur.parentNode;
+    }
+    return null;
+}
+
+function previousTextNode(el) {
+    let n = el;
+    while (n) {
+        if (n.previousSibling) {
+            n = n.previousSibling;
+            while (n && n.lastChild) n = n.lastChild;
+        } else {
+            n = n.parentNode;
+        }
+        if (!n) break;
+        if (n.nodeType === Node.TEXT_NODE && n.nodeValue && n.nodeValue.trim()) return n;
+    }
+    return null;
+}
+
+function nextTextNode(el) {
+    let n = el;
+    while (n) {
+        if (n.nextSibling) {
+            n = n.nextSibling;
+            while (n && n.firstChild) n = n.firstChild;
+        } else {
+            n = n.parentNode;
+        }
+        if (!n) break;
+        if (n.nodeType === Node.TEXT_NODE && n.nodeValue && n.nodeValue.trim()) return n;
+    }
+    return null;
+}
+
+// 提取点击位置的“词”或字符：
+// - 英文/数字：整词（\w 连续）
+// - 中文/日文/韩文：单字符，若左右是 CJK，也可扩展为相邻 2-3 字
+// - 若为标点，尝试返回所在句子的短片段
+function extractWordOrChar(line, index) {
+    if (!line || index < 0 || index >= line.length) return null;
+
+    const ch = line[index];
+    const isWordChar = /[\w']/;
+    const isCJK = /[\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/;
+    const isWhitespace = /\s/;
+
+    // 英文等：取整词
+    if (isWordChar.test(ch)) {
+        let s = index, e = index;
+        while (s > 0 && isWordChar.test(line[s - 1])) s--;
+        while (e < line.length - 1 && isWordChar.test(line[e + 1])) e++;
+        return line.substring(s, e + 1);
+    }
+
+    // CJK：返回单字符，若左右也是 CJK，则扩展到 2-3 个字符以更自然
+    if (isCJK.test(ch)) {
+        let s = index, e = index;
+        // 尝试向左右各扩展 1 个 CJK 字符
+        if (s > 0 && isCJK.test(line[s - 1])) s--;
+        if (e < line.length - 1 && isCJK.test(line[e + 1])) e++;
+        return line.substring(s, e + 1);
+    }
+
+    // 标点或其他：尝试提取所在句子片段
+    if (!isWhitespace.test(ch)) {
+        const sentenceDelim = /[。！？.!?]/;
+        let s = index, e = index;
+        while (s > 0 && !sentenceDelim.test(line[s - 1])) s--;
+        while (e < line.length - 1 && !sentenceDelim.test(line[e + 1])) e++;
+        const snippet = line.substring(s, Math.min(e + 2, line.length));
+        return snippet.trim();
+    }
+
+    // 空白：返回就近的非空白字符
+    let left = index - 1, right = index + 1;
+    while (left >= 0 || right < line.length) {
+        if (left >= 0 && !isWhitespace.test(line[left])) return extractWordOrChar(line, left);
+        if (right < line.length && !isWhitespace.test(line[right])) return extractWordOrChar(line, right);
+        left--; right++;
+    }
+    return null;
+}
+
+// 处理文本点击事件
+function handleTextClick(event, textInput) {
+    event.preventDefault();
+    
+    // 停止当前朗读
+    stopSpeaking();
+    
+    // 先让浏览器根据这次点击更新光标位置，再读取 selectionStart
+    if (textInput && typeof textInput.focus === 'function') {
+        textInput.focus();
+    }
+    
+    window.requestAnimationFrame(() => {
+        const textToRead = getTextAtSelection(textInput);
+        if (textToRead) {
+            speakText(textToRead);
+        }
+    });
+}
+
+    // 获取点击位置的文本内容
+function getTextAtClickPosition(event, textInput) {
+    // 改为基于当前选区读取，避免坐标到字符索引的误差
+    return getTextAtSelection(textInput);
+}
+
+// 基于当前选区位置获取文本内容（更稳定）
+function getTextAtSelection(textInput) {
+    if (!textInput) return null;
+    const text = textInput.value || '';
+    if (!text) return null;
+    
+    const cursorPosition = getCursorPosition(null, textInput);
+    return getTextAroundPosition(text, cursorPosition);
+}
+
+// 获取光标位置（基于 selectionStart，更稳健）
+function getCursorPosition(event, textInput) {
+    const text = (textInput && textInput.value) || '';
+    if (!text) return { line: 0, column: 0, text: '', fullText: '' };
+
+    // 直接使用 selectionStart，避免坐标映射误差
+    let charIndex = textInput.selectionStart || 0;
+
+    const lines = text.split('\n');
+    let currentIndex = 0;
+    let lineNumber = 0;
+    let columnNumber = 0;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (charIndex <= currentIndex + line.length) {
+            lineNumber = i;
+            columnNumber = charIndex - currentIndex;
+            break;
+        }
+        currentIndex += line.length + 1; // 加上换行符
+    }
+
+    return {
+        line: lineNumber,
+        column: columnNumber,
+        text: lines[lineNumber],
+        fullText: text
+    };
+}
+
+// 获取光标周围的文本内容
+function getTextAroundPosition(text, position) {
+    if (!position) return text;
+    
+    const lines = text.split('\n');
+    const currentLine = lines[position.line] || '';
+    
+    // 如果点击在单词中间，尝试获取完整单词
+    const wordMatch = getWordAtPosition(currentLine, position.column);
+    if (wordMatch) {
+        return wordMatch;
+    }
+    
+    // 否则返回当前行的内容
+    return currentLine || text;
+}
+
+// 获取指定位置的单词
+function getWordAtPosition(line, column) {
+    if (!line) return null;
+    
+    // 找到单词边界
+    let start = column;
+    let end = column;
+    
+    // 向前查找单词开始
+    while (start > 0 && /\w/.test(line[start - 1])) {
+        start--;
+    }
+    
+    // 向后查找单词结束
+    while (end < line.length && /\w/.test(line[end])) {
+        end++;
+    }
+    
+    if (start < end) {
+        return line.substring(start, end);
+    }
+    
+    return null;
+}
+
+// 朗读文本
+function speakText(text) {
+    if (!text || text.trim() === '') return;
+    
+    // 停止当前朗读
+    stopSpeaking();
+    
+    // 创建新的语音合成实例
+    currentUtterance = new SpeechSynthesisUtterance(text);
+    
+    // 设置语音参数
+    currentUtterance.rate = 0.9;  // 语速
+    currentUtterance.pitch = 1.0; // 音调
+    currentUtterance.volume = 1.0; // 音量
+    
+    // 尝试选择更好的语音
+    const voices = speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+        voice.lang.startsWith('en') && voice.name.includes('Enhanced')
+    ) || voices.find(voice => voice.lang.startsWith('en'));
+    
+    if (preferredVoice) {
+        currentUtterance.voice = preferredVoice;
+    }
+    
+    // 设置事件监听器
+    currentUtterance.onstart = function() {
+        isSpeaking = true;
+        console.log('开始朗读:', text);
+    };
+    
+    currentUtterance.onend = function() {
+        isSpeaking = false;
+        console.log('朗读结束');
+    };
+    
+    currentUtterance.onerror = function(event) {
+        isSpeaking = false;
+        console.error('朗读错误:', event.error);
+    };
+    
+    // 开始朗读
+    speechSynthesis.speak(currentUtterance);
+}
+
+// 停止朗读
+function stopSpeaking() {
+    if (isSpeaking) {
+        speechSynthesis.cancel();
+        isSpeaking = false;
+    }
+}
+
+// 朗读当前位置
+function readCurrentPosition(textInput) {
+    const text = textInput.value;
+    const cursorPos = textInput.selectionStart || 0;
+    
+    if (text && cursorPos >= 0) {
+        // 获取光标位置的字符
+        const char = text[cursorPos];
+        if (char) {
+            speakText(char);
+        }
+    }
+}
+
+// 朗读选中文本
+function readSelectedText(textInput) {
+    const selectedText = textInput.value.substring(
+        textInput.selectionStart, 
+        textInput.selectionEnd
+    );
+    
+    if (selectedText) {
+        speakText(selectedText);
+    }
+}
