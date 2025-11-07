@@ -21,6 +21,7 @@
                          placeholder="Enter text here..." 
                          aria-label="Text input area"
                          rows="6"></textarea>
+                <button id="send-text" class="control-btn">Send to Model</button>
             </section>
 
             <!-- Test Paragraph Selection -->
@@ -43,7 +44,6 @@
                         Hold to Record
                     </button>
                 </div>
-                
             </section>
 
             <!-- Gesture Input Area -->
@@ -84,9 +84,33 @@
                 </div>
             </section>
         </main>
-
     </div>
 
-    <script src="script.js"></script>
+    <!-- ✅ 在末尾加这段 -->
+    <script>
+    // 替换为你的 Colab 公网 API
+    const API_URL = "https://chalkier-painstakingly-claire.ngrok-free.dev/predict";
+
+    // 点击按钮发送文本到 Colab 模型
+    document.getElementById("send-text").addEventListener("click", async () => {
+        const text = document.getElementById("text-input").value;
+        if (!text.trim()) {
+            alert("Please enter some text first.");
+            return;
+        }
+        try {
+            const res = await fetch(API_URL, {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({ input: text })
+            });
+            const data = await res.json();
+            document.getElementById("final-text").innerText = data.result || "(No response)";
+        } catch (err) {
+            console.error(err);
+            alert("Error connecting to backend. Check Colab or ngrok status.");
+        }
+    });
+    </script>
 </body>
 </html>
